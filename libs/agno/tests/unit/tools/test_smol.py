@@ -93,7 +93,7 @@ def test_commands_and_file_paths_stay_inside_vm(machines):
         vm.exec.return_value = SimpleNamespace(exit_code=7, output="failed long output")
         vm.read_file.return_value = b"\xff"
         result = tools.run_shell_command("exit 7")
-        assert result.startswith("Exit c") and result.endswith("[output truncated]")
+        assert result.startswith("Exit code 7\nfailed") and result.endswith("[output truncated]")
         assert vm.exec.call_args.args[0] == ["sh", "-c", "exit 7"]
         assert vm.exec.call_args.args[1].workdir == "/workspace/my-project"
         assert "not UTF-8" in tools.read_file("bad.txt")
@@ -102,6 +102,15 @@ def test_commands_and_file_paths_stay_inside_vm(machines):
         vm.write_file.assert_called_once_with("/workspace/hello.txt", "hi")
         tools.close()
         vm.delete.assert_called_once_with()
+
+
+def test_failed_command_keeps_exit_code_without_output(machines):
+    tools = SmolTools(max_output_chars=1)
+    with patch("agno.tools.smol.Machine.create") as create:
+        vm = create.return_value
+        vm.exec.return_value = SimpleNamespace(exit_code=127, output="")
+        assert tools.run_shell_command("missing-command") == "Exit code 127"
+        tools.close()
 
 
 def test_async_tools_use_worker_threads_and_share_the_same_machine(machines):

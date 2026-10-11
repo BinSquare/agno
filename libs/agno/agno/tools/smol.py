@@ -143,10 +143,11 @@ class SmolTools(Toolkit):
 
     def _format_result(self, result) -> str:
         output = result.output
-        if result.exit_code != 0:
-            output = f"Exit code {result.exit_code}" + (f"\n{output}" if output else "")
         if len(output) > self.max_output_chars:
-            return output[: self.max_output_chars] + "\n[output truncated]"
+            output = output[: self.max_output_chars] + "\n[output truncated]"
+        if result.exit_code != 0:
+            # Keep the exit status even when the output limit is very small.
+            return f"Exit code {result.exit_code}" + (f"\n{output}" if output else "")
         return output or "Command completed with no output."
 
     def run_shell_command(self, command: str) -> str:
